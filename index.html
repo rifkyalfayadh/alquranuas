@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Al-Quran</title>
+
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css"
+    />
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+  </head>
+  <body class="bg-light bg-img">
+    <div class="container mt-4">
+      <h2 class="text-center mb-4" style="color: white">
+        Daftar Surat Al-Quran
+      </h2>
+
+      <div class="input-group mb-4">
+        <input
+          type="text"
+          id="searchBox"
+          style="border-radius: 12px"
+          class="form-control"
+          placeholder="Pencarian Cepat..."
+        />
+        <div class="input-group-append">
+          &nbsp;<span
+            class="input-group-text bg-success text-white"
+            style="border-radius: 12px"
+            >Cari</span
+          >
+        </div>
+      </div>
+
+      <div id="surat-list" class="row"></div>
+    </div>
+
+    <div
+      class="modal fade"
+      id="detailModal"
+      tabindex="-1"
+      role="dialog"
+      aria-labelledby="detailModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+          <div class="modal-header bg-success text-white">
+            <h5 class="modal-title" id="detailModalLabel">Detail Surat</h5>
+          </div>
+          <div class="modal-body" style="margin: 10px">
+            <h4 id="namaSurat"></h4>
+            <p id="artiSurat" class="font-italic text-muted"></p>
+            <hr />
+            <div id="ayatList"></div>
+          </div>
+          <div class="modal-footer" style="padding: 20px">
+            <button
+              type="button"
+              class="close text-white"
+              data-dismiss="modal"
+              aria-label="Close"
+            >
+              <span
+                aria-hidden="true"
+                style="
+                  color: black;
+                  font-size: 16pt;
+                  padding: 10px;
+                  margin: 10px;
+                "
+                >&nbsp;Tutup</span
+              >
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let daftarSurat = [];
+
+      $.ajax({
+        type: "GET",
+        url: "https://equran.id/api/v2/surat",
+        success: function (response) {
+          daftarSurat = response.data;
+          tampilkanSurat(daftarSurat);
+        },
+      });
+
+      function tampilkanSurat(data) {
+        $("#surat-list").html("");
+        data.forEach((surat) => {
+          $("#surat-list").append(`
+          <div class="col-md-4 mb-3 surat-item">
+            <div class="card surat-card shadow-sm" style="border-radius: 12px;">
+              <div class="card-body">
+                <h5 class="card-title" style="font-style: italic;">${surat.namaLatin} <span style="font-style: normal;">(${surat.nama})</span></h5>
+                <p class="card-text">Surat ke-${surat.nomor} | ${surat.jumlahAyat} ayat</p>
+                <button class="btn btn-success btn-sm detail-btn" data-id="${surat.nomor}" style="float: right;">Lihat Detail</button>
+              </div>
+            </div>
+          </div>
+        `);
+        });
+
+        // Event tombol detail
+        $(".detail-btn").on("click", function () {
+          let id = $(this).data("id");
+          $.ajax({
+            type: "GET",
+            url: `https://equran.id/api/v2/surat/${id}`,
+            success: function (detail) {
+              let surat = detail.data;
+              $("#namaSurat").text(`${surat.namaLatin} (${surat.nama})`);
+              $("#artiSurat").text(`Arti: ${surat.arti}`);
+              $("#ayatList").html("");
+
+              surat.ayat.forEach((a) => {
+                $("#ayatList").append(`
+                <div class="mb-3">
+                  <h5 class="text-right font-arabic">${a.teksArab}</h5>
+                  <p><strong>Artinya:</strong> ${a.teksIndonesia}</p>
+                </div>
+                <hr>
+              `);
+              });
+
+              $("#detailModal").modal("show");
+            },
+          });
+        });
+      }
+
+      // Fitur pencarian
+      $("#searchBox").on("input", function () {
+        let keyword = $(this).val().toLowerCase();
+        let hasil = daftarSurat.filter(
+          (surat) =>
+            surat.namaLatin.toLowerCase().includes(keyword) ||
+            surat.nama.toLowerCase().includes(keyword)
+        );
+        tampilkanSurat(hasil);
+      });
+    </script>
+
+    <style>
+      .font-arabic {
+        font-family: "Scheherazade", serif;
+        font-size: 1.4rem;
+        line-height: 2;
+      }
+      .card {
+        transition: 0.2s;
+      }
+      .card:hover {
+        transform: scale(1.02);
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+      }
+
+      .card.surat-card {
+        background-color: rgb(19, 18, 18);
+        background-size: cover;
+        background-position: center;
+        color: white;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .card.surat-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.55); /* overlay supaya teks jelas */
+        backdrop-filter: blur(2px);
+      }
+
+      .card.surat-card .card-body {
+        position: relative;
+        z-index: 2;
+      }
+
+      .bg-img {
+        background-image: url("quran.jpeg");
+        background-repeat: no-repeat;
+        background-size: cover; /* gambar menutupi seluruh area */
+        background-position: center center; /* pusatkan fokus */
+        background-attachment: fixed; /* efek parallax */
+        background-color: #000; /* warna latar belakang cadangan */
+      }
+    </style>
+  </body>
+</html>
